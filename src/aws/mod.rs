@@ -13,7 +13,7 @@ use aws_sigv4::{
     sign::v4,
 };
 use aws_smithy_async::rt::sleep::TokioSleep;
-use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
+use aws_smithy_experimental::hyper_1_0::{CryptoMode, HyperClientBuilder};
 use aws_smithy_runtime_api::client::{
     http::{
         HttpClient, HttpConnector, HttpConnectorFuture, HttpConnectorSettings, SharedHttpConnector,
@@ -110,10 +110,16 @@ fn connector(
 
     if proxy.enabled {
         let proxy = build_proxy_connector(tls_settings, proxy)?;
-        Ok(HyperClientBuilder::new().build(proxy))
+        Ok(HyperClientBuilder::new()
+            .crypto_mode(CryptoMode::AwsLc)
+            .build_with_fn(move || proxy)
+            .build_https())
     } else {
         let tls_connector = build_tls_connector(tls_settings)?;
-        Ok(HyperClientBuilder::new().build(tls_connector))
+        Ok(HyperClientBuilder::new()
+            .crypto_mode(CryptoMode::AwsLc)
+            .build_with_fn(move || tls_connector)
+            .build_https())
     }
 }
 
